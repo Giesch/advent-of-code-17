@@ -43,30 +43,22 @@
     that are repeated 'opposite' the circle.
     Assumes the string has an even length."
   [s]
-    (->> s
-         (first-half-pairs)
-         (sum-matching-pairs)
-         (* 2)))
+  (->> s
+       (first-half-pairs)
+       (sum-matching-pairs)
+       (* 2)))
 
 ;;;; Day 2
 
-(defn- apply-to-line [f s]
-  (->> s
-       (tab-split)
-       (map parse-int)
-       (f)))
-
-;;; Part 1
-
-(defn- find-difference [line]
-  (apply-to-line #(- (apply max %) (apply min %))
-                 line))
-
-(defn- sum-line-differences [s]
+(defn- parse-apply-and-sum [f s]
   (->> s
        (string/split-lines)
-       (map find-difference)
+       (map tab-split)
+       (map #(map parse-int %))
+       (map f)
        (reduce +)))
+
+;;; Part 1
 
 (defn advent-2-1
   "Sums the differences between the min and max of each line
@@ -74,11 +66,11 @@
   [s]
   (if (empty? s)
     0
-    (sum-line-differences s)))
+    (parse-apply-and-sum #(- (apply max %) (apply min %)) s)))
 
 ;;; Part 2
 
-(defn- find-and-divide [nums]
+(defn- find-quotient [nums]
   (first (for [x nums
                y nums
                :when (and (> x y)
@@ -89,7 +81,4 @@
   "Sums the integer quotients found on each line.
     Assumes there is exactly one per line"
   [s]
-  (->> s
-       (string/split-lines)
-       (map #(apply-to-line find-and-divide %))
-       (reduce +)))
+  (parse-apply-and-sum find-quotient s))
