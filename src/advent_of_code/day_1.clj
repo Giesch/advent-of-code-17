@@ -1,10 +1,10 @@
 (ns advent-of-code.day-1
   (:require [advent-of-code.core :refer :all]))
 
-(defn- sum-matching-pairs [pairs]
+(defn sum-matching-pairs [pairs]
   (->> pairs
        (filter (fn [[a b]] (= a b)))
-       (map #(char->digit (first %)))
+       (map #(char->int (first %)))
        (reduce +)))
 
 ;;; Part 1
@@ -16,20 +16,17 @@
 
 ;;; Part 2
 
-(defn- first-half-pairs [s]
-  (let [half (/ (count s) 2)]
+(defn opposite-pairs [s]
+  (let [c (count s)]
     (->> s
-         (partition (inc half) 1)
-         (take half)
+         (cycle)
+         (partition (inc (/ c 2)) 1)
+         (take c)
          (map (fn [coll] [(first coll) (last coll)])))))
 
-(defn advent-1-2
+(defn advent-1-2 [s]
   "Sums all numbers in a circular string
-    that are repeated 'opposite' the circle.
-    Assumes the string has an even length."
-  [s]
-  (->> s
-       (first-half-pairs)
-       (sum-matching-pairs)
-       (* 2)))
+      that are repeated 'opposite' the circle.
+      Assumes the string has an even length."
+  (sum-matching-pairs (opposite-pairs s)))
 

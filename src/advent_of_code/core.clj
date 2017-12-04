@@ -3,7 +3,7 @@
 
 ;;;; Helpers
 
-(defn char->digit [c]
+(defn char->int [c]
   (Character/digit c 10))
 
 (defn str->int [s]
