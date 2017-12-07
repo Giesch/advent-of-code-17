@@ -8,33 +8,29 @@
        (filter valid?)
        (count)))
 
+(defn no-repeated [words store-as]
+  (loop [s #{}
+         ws words]
+    (if (empty? ws)
+      true
+      (let [w (store-as (first ws))]
+        (if (s w)
+          false
+          (recur (conj s w)
+                 (rest ws)))))))
+
 ;;;; Part 1
 
-(defn repeated-words-so-far [coll]
-  (map second
-       (reductions
-        (fn [[so-far repeated] word]
-          (if (so-far word)
-            [so-far (conj repeated word)]
-            [(conj so-far word) repeated]))
-        [#{} #{}]
-        coll)))
+(defn no-repeated-words [words]
+  (no-repeated words identity))
 
 (defn advent-4-1 [s]
-  (count-valid-lines s #(not-any? seq (repeated-words-so-far %))))
+  (count-valid-lines s no-repeated-words))
 
 ;;;; Part 2
 
-(defn repeated-anagrams-so-far [coll]
-  (map second
-       (reductions
-        (fn [[so-far repeated] word]
-          (let [anagram (sort word)]
-            (if (so-far anagram)
-              [so-far (conj repeated anagram)]
-              [(conj so-far anagram) repeated])))
-        [#{} #{}]
-        coll)))
+(defn no-repeated-anagrams [words]
+  (no-repeated words sort))
 
 (defn advent-4-2 [s]
-  (count-valid-lines s #(not-any? seq (repeated-anagrams-so-far %))))
+  (count-valid-lines s no-repeated-anagrams))
