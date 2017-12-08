@@ -8,12 +8,12 @@
        (filter valid?)
        (count)))
 
-(defn no-repeated [words store-as]
+(defn no-repeated [words cache-as]
   (loop [s #{}
          ws words]
     (if (empty? ws)
       true
-      (let [w (store-as (first ws))]
+      (let [w (cache-as (first ws))]
         (if (s w)
           false
           (recur (conj s w)
