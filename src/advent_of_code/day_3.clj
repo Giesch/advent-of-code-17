@@ -22,3 +22,50 @@
   (last (take n distances)))
 
 ;;;; Part 2
+
+(def odd-squares
+  (map #(* % %)
+       (filter odd? (range))))
+
+(defn indexed [coll]
+  (map-indexed vector coll))
+
+(defn last-index-for [pred coll]
+  (first (last (take-while #(pred (second %))
+                           (indexed coll)))))
+
+(defn which-level [n]
+  (#(if (nil? %) 0 (inc %))
+   (last-index-for #(< % n)
+                   odd-squares)))
+
+(defn side-length [idx]
+  (* 2 (which-level idx)))
+
+(defn set-of-corners [x]
+  (let [l (side-length x)]
+    [(- x (* 3 l)) (- x (* 2 l)) (- x l) x]))
+
+(def corners
+  (mapcat set-of-corners
+          odd-squares))
+
+(defn corner? [idx]
+  (= idx (last
+          (take-while #(<= % idx)
+                      corners))))
+
+(defn corner-idx [idx]
+  (last-index-for #(<= % idx)
+                  corners))
+
+(defn inner-corner [idx]
+  (nth corners (- (corner-idx idx) 4)))
+
+
+(defn sum-at-idx [idx]
+  (cond
+    (= idx 0) 1
+    (corner? idx) (+ (sum-at-idx (- idx 1))
+                     (sum-at-idx (inner-corner idx)))
+    :else 0))
