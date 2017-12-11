@@ -11,6 +11,8 @@
        (map str->int)
        (vec)))
 
+;;;; Part 1
+
 (defn distribute
   "Distributes n boxes in vector v, beginning at index i."
   [v n i]
@@ -31,10 +33,6 @@
               (get v i)
               (inc i)))
 
-(defn indexed
-  [coll]
-  (map-indexed vector coll))
-
 (defn max-index
   [v]
   (let [m (apply max v)]
@@ -48,7 +46,7 @@
   [v]
   (redistribute v (max-index v)))
 
-(defn give-up
+(defn how-long
   [v]
   (loop [v v
          s #{}
@@ -58,3 +56,5 @@
       (recur (redistribute-max v)
              (conj s v)
              (inc i)))))
+
+;;;; Part 2

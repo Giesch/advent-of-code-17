@@ -11,3 +11,7 @@
 
 (defn tab-split [s]
   (string/split s #"\t"))
+
+(defn indexed
+  [coll]
+  (map-indexed vector coll))
