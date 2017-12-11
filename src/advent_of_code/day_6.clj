@@ -58,3 +58,14 @@
              (inc i)))))
 
 ;;;; Part 2
+
+(defn loop-size
+  [v]
+  (loop [v v
+         m {}
+         i 0]
+    (if (contains? m v)
+      (- i (get m v))
+      (recur (redistribute-max v)
+             (assoc m v i)
+             (inc i)))))
