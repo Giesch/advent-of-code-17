@@ -23,6 +23,4 @@ cntj (57)
 
   (deftest advent-7-2-test
     (is (= (advent-7-2 example)
-           60)))
-
-  )
+           60))))

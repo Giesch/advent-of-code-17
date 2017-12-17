@@ -15,7 +15,12 @@
 (defn ws-split [s]
   (string/split s #"\s+"))
 
-(defn indexed
-  [coll]
+(defn indexed [coll]
   (map-indexed vector coll))
 
+(defn find-first [pred coll]
+  (reduce (fn [_ item]
+            (when (pred item)
+              (reduced item)))
+          nil
+          coll))
