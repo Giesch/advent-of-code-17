@@ -2,8 +2,7 @@
   (:require [advent-of-code.day-7 :refer :all]
             [clojure.test :refer :all]))
 
-(deftest find-root-test
-  (is (= (find-root "pbga (66)
+(let [example "pbga (66)
 xhth (57)
 ebii (61)
 havc (66)
@@ -16,6 +15,14 @@ jptl (61)
 ugml (68) -> gyxo, ebii, jptl
 gyxo (61)
 cntj (57)
-")
-         "tknk"))
+"]
+
+  (deftest advent-7-1-test
+    (is (= (advent-7-1 example)
+           ["tknk"])))
+
+  (deftest advent-7-2-test
+    (is (= (advent-7-2 example)
+           60)))
+
   )
