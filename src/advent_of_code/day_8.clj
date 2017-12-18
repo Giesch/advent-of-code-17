@@ -48,13 +48,14 @@
     "inc" (update-registers rs r + arg)
     "dec" (update-registers rs r - arg)))
 
-(defn interpret [registers parsed-line]
+(defn interpret
+  [registers {:keys [condition register instruction argument]}]
   (if (check-cond registers
-                  (:condition parsed-line))
+                  condition)
     (execute registers
-             (:register parsed-line)
-             (:instruction parsed-line)
-             (:argument parsed-line))
+             register
+             instruction
+             argument)
     registers))
 
 (defn run [parsed-lines]
@@ -74,13 +75,13 @@
 ;;;; Part 2
 
 (defn interpret-with-max
-  [[mx registers] parsed-line]
+  [[mx registers] {:keys [condition register instruction argument]}]
   (if (check-cond registers
-                  (:condition parsed-line))
+                  condition)
     (let [rs (execute registers
-                      (:register parsed-line)
-                      (:instruction parsed-line)
-                      (:argument parsed-line))
+                      register
+                      instruction
+                      argument)
           mx (max mx (max-register-value rs))] ;; wasteful
       [mx rs])
     [mx registers]))
