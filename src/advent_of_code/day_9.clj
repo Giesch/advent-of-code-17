@@ -1,54 +1,38 @@
 (ns advent-of-code.day-9
-  (:require [advent-of-code.core :refer :all]
-            [clojure.string :as string]))
+  (:require [advent-of-code.core :refer :all]))
 
-;; ;; initial state
-;; {:saw-bang false,
-;;  :in-garbage false,
-;;  :brackets-deep 0
-;;  :score 0}
+(def initial-state
+  {:saw-bang false,
+   :in-garbage false,
+   :garbage-count 0,
+   :brackets-deep 0,
+   :score 0})
 
-(defn look-for-end-garbage
-  "When saw-bang is false, in-garbage is true, and ch != !"
-  [state ch]
+(defn in-the-bin [state ch]
   (if (= ch \>)
     (assoc state :in-garbage false)
     (update state :garbage-count inc)))
 
-(defn close-bracket
-  [{:keys [brackets-deep score] :as state}]
-  (conj state
-        {:brackets-deep (dec brackets-deep)
-         :score (+ score brackets-deep)}))
-
-(defn open-bracket
-  [state]
-  (update state :brackets-deep inc))
-
-(defn count-brackets
-  "When we're in clean brackets land."
-  [state ch]
-  (cond
-    (= ch \}) (close-bracket state)
-    (= ch \{) (open-bracket state)
-    :else state))
+(defn counting-brackets
+  [{:keys [brackets-deep score] :as state} ch]
+  (case ch
+    \} (merge state {:brackets-deep (dec brackets-deep)
+                     :score (+ score brackets-deep)})
+    \{ (update state :brackets-deep inc)
+    state))
 
 (defn read-char
-  [{:keys [saw-bang in-garbage brackets-deep score] :as state} ch]
+  [{:keys [saw-bang in-garbage] :as state} ch]
   (cond
     saw-bang   (assoc state :saw-bang false)
     (= ch \!)  (assoc state :saw-bang true)
-    in-garbage (look-for-end-garbage state ch)
+    in-garbage (in-the-bin state ch)
     (= ch \<)  (assoc state :in-garbage true)
-    :else      (count-brackets state ch)))
+    :else      (counting-brackets state ch)))
 
 (defn parse-string [s]
   (reduce read-char
-          {:saw-bang false,
-           :in-garbage false,
-           :garbage-count 0,
-           :brackets-deep 0,
-           :score 0}
+          initial-state
           s))
 
 (defn advent-9-1 [s]
