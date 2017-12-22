@@ -2,6 +2,8 @@
   (:require [advent-of-code.core :refer :all]
             [clojure.string :as string]))
 
+;;;; Part 1
+
 (defn read-length [v i l]
   (->> v
        (cycle)
@@ -9,21 +11,18 @@
        (take l)))
 
 (defn write-length [v i length]
-  (let [l (count length)
-        doubled (concat v v)
-        draft (concat (take i doubled)
+  (let [cl    (count length)
+        cv    (count v)
+        draft (concat (take i (cycle v))
                       length
-                      (drop (+ i l)
-                            doubled))]
-    (concat
-     (take i
-           (drop (count v)
-                 draft))
-     (take (- (count v) i)
-           (drop i draft)))))
+                      (drop (+ i cl) (cycle v)))]
+    (concat (take i (drop cv draft))
+            (take (- cv i) (drop i draft)))))
 
 (defn reverse-and-write [v i l]
-  (write-length v i (reverse (read-length v i l))))
+  (->> (read-length v i l)
+       (reverse)
+       (write-length v i)))
 
 (defn update-state
   "Takes a state and length, and returns a new state,
@@ -42,13 +41,43 @@
   (apply * (take 2 (first
                     (knots v lengths)))))
 
-(def input
-  (map str->int
-       (string/split
-        "34,88,2,222,254,93,150,0,199,255,39,32,137,136,1,167"
-        #",")))
+;;;; Part 2
 
-(def v
-  [0 1 2 3 4])
-(def lengths
-  [3 4 1 5])
+(defn process-input [s]
+  (concat (map int s)
+          [17, 31, 73, 47, 23]))
+
+(defn hash-round
+  "Takes a seq of lengths and a state, and returns a new state,
+    where a state is a list, starting position, and skip size."
+  [ls state]
+  (reduce update-state
+          state
+          ls))
+
+(defn sparse-hash [v ls]
+  (->> [v 0 0]
+       (iterate (partial hash-round ls))
+       (take 65)
+       (last)
+       (first)))
+
+(defn dense-hash [sparse]
+  (map #(apply bit-xor %)
+       (partition 16 sparse)))
+
+(defn int->hex-str [i]
+  (let [s (Integer/toHexString i)]
+    (if (= 2 (count s))
+      s
+      (str "0" s))))
+
+(defn hash->hex [dense]
+  (apply str (map int->hex-str dense)))
+
+(defn advent-10-2 [s]
+  (->> s
+       (process-input)
+       (sparse-hash (range 256))
+       (dense-hash)
+       (hash->hex)))
