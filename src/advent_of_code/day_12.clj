@@ -19,9 +19,10 @@
     (if (empty? neighbors)
       connected
       (recur (conj connected (first neighbors))
-             (remove connected
-                     (concat (rest neighbors)
-                             (get m (first neighbors))))))))
+             (->> (first neighbors)
+                  (get m)
+                  (concat (rest neighbors))
+                  (remove connected))))))
 
 (defn advent-12-1 [s]
   (-> s

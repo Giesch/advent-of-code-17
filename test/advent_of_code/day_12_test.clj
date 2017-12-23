@@ -1,6 +1,7 @@
 (ns advent-of-code.day-12-test
   (:require [advent-of-code.day-12 :refer :all]
             [clojure.test :refer :all]))
+
 (let [example "0 <-> 2
 1 <-> 1
 2 <-> 0, 3, 4
