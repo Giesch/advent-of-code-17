@@ -20,7 +20,6 @@
 
 (defn find-first [pred coll]
   (reduce (fn [_ item]
-            (when (pred item)
-              (reduced item)))
+            (when (pred item) (reduced item)))
           nil
           coll))
