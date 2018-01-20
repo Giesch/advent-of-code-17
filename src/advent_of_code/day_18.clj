@@ -10,10 +10,10 @@
 
 (defn prepare-input [s]
   (->> s
-       string/split-lines
+       (string/split-lines)
        (map string/trim)
        (map ws-split)
-       vec))
+       (vec)))
 
 (defn register-or-value [registers s]
   (or (get registers s)
@@ -25,12 +25,6 @@
 (defn update-registers [state f]
   (inc-instr
    (update state :registers f)))
-
-(defn play-sound [state arg]
-  (inc-instr
-   (if-let [sound (get (:registers state) arg)]
-     (assoc state :last-sound sound)
-     state)))
 
 (defn set-register [registers [reg arg2]]
   (assoc registers
@@ -54,6 +48,12 @@
          reg
          (* (get registers reg 0)
             (str->int val))))
+
+(defn play-sound [state arg]
+  (inc-instr
+   (if-let [sound (get (:registers state) arg)]
+     (assoc state :last-sound sound)
+     state)))
 
 (defn recover-sound [{:keys [registers] :as state} arg]
   (inc-instr
@@ -92,51 +92,83 @@
   (->> s
        (prepare-input)
        (states)
-       (find-first #(:recovered %))))
+       (find-first :recovered)))
 
-(comment
+;;;; Part 2
 
-  (prepare-input input))
+(defn init-process [p]
+  {:registers     {"p" p}
+   :current-instr 0
+   :total-sent    0})
 
-(def input
-  "set i 31
-  set a 1
-  mul p 17
-  jgz p p
-  mul a 2
-  add i -1
-  jgz i -2
-  add a -1
-  set i 127
-  set p 826
-  mul p 8505
-  mod p a
-  mul p 129749
-  add p 12345
-  mod p a
-  set b p
-  mod b 10000
-  snd b
-  add i -1
-  jgz i -9
-  jgz a 3
-  rcv b
-  jgz b -1
-  set f 0
-  set i 126
-  rcv a
-  rcv b
-  set p a
-  mul p -1
-  add p b
-  jgz p 4
-  snd a
-  set a b
-  jgz 1 3
-  snd b
-  set f 1
-  add i -1
-  jgz i -11
-  snd a
-  jgz f -16
-  jgz a -19")
+;; global mutable state is a good idea
+
+(def inbox-0 (atom []))
+
+(def inbox-1 (atom []))
+
+(defn send-fn [inbox]
+  (fn [msg]
+    (swap! inbox conj msg)))
+
+;; thanks SO
+(defn recieve-fn [inbox]
+  (fn []
+    (if-let [msg (first @inbox)]
+      (do (swap! inbox #(subvec % 1)) ;; yay side effects?
+          msg)
+      nil)))
+
+(def world-state
+  (let [process-0 (init-process 0)
+        process-1 (init-process 1)]
+    {:process-0 (merge process-0 {:send!    (send-fn inbox-1)
+                                  :recieve! (recieve-fn inbox-0)})
+     :process-1 (merge process-1 {:send!    (send-fn inbox-0)
+                                  :recieve! (recieve-fn inbox-1)})}))
+
+(defn send-message
+  [{:keys [registers send!] :as state} reg]
+  (do (send! (get registers reg 0))
+      (inc-instr (update state :total-sent inc))))
+
+(defn recieve-message
+  [{:keys [recieve!] :as state} reg]
+  (if-let [msg (recieve!)]
+    (inc-instr (update state
+                       :registers
+                       #(assoc % reg msg)))
+    state))
+
+(defn execute-instruction-2
+  "Returns the new state from executing current instruction."
+  [instructions {:keys [current-instr] :as state}]
+  (let [[instr & args] (get instructions current-instr)]
+    (case instr
+      "snd" (send-message state (first args))
+      "set" (update-registers state #(set-register % args))
+      "add" (update-registers state #(add-register % args))
+      "mul" (update-registers state #(multiply-register % args))
+      "mod" (update-registers state #(mod-register % args))
+      "rcv" (recieve-message state (first args))
+      "jgz" (jump-maybe state args))))
+
+;; thanks 2011 blog
+(defn update-values [m f]
+  (into {} (for [[k v] m]
+             [k (f v)])))
+
+(defn states-2 [instructions]
+  (iterate
+   #(update-values % (partial execute-instruction-2 instructions))
+   world-state))
+
+(defn advent-18-2 [s]
+  (->> s
+       (prepare-input)
+       (states-2)
+       (partition 2 1)
+       (take-while (fn [[a b]] (not= a b)))
+       (last)
+       (first)
+       (#(get-in % [:process-1 :total-sent]))))
