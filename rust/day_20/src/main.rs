@@ -1,62 +1,76 @@
 use std::fs::read_to_string;
 
 fn main() {
-    let particles: Vec<Particle> = read_input("problem.txt");
+    let mut particles: Vec<Particle> = read_input("problem.txt");
 
-    // println!("{:#?}", particles);
+    for _ in 0..1_000_000 {
+        update_particles(&mut particles)
+    }
+
+    let closest = closest_to_center(particles);
+
+    println!("{:#?}", closest);
 }
 
 fn read_input(file_name: &str) -> Vec<Particle> {
     read_to_string(file_name)
         .unwrap()
         .lines()
-        .map(|line| Particle::from_string(line))
+        .enumerate()
+        .map(|(index, line)| Particle::from_string(line, index))
         .collect()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Vector3 {
-    x: i32,
-    y: i32,
-    z: i32,
-}
+fn vector_from_string(s: &str) -> [i64; 3] {
+    let unbracketed = s.split(|c| c == '<' || c == '>').collect::<Vec<&str>>()[1];
+    let numbers = unbracketed.split(',').collect::<Vec<&str>>();
 
-impl Vector3 {
-    fn from_string(s: &str) -> Vector3 {
-        let unbracketed = s.split(|c| c == '<' || c == '>').collect::<Vec<&str>>()[1];
-        let numbers = unbracketed.split(',').collect::<Vec<&str>>();
-
-        Vector3 {
-            x: numbers[0].parse().unwrap(),
-            y: numbers[1].parse().unwrap(),
-            z: numbers[2].parse().unwrap(),
-        }
-    }
+    [
+        numbers[0].parse().unwrap(),
+        numbers[1].parse().unwrap(),
+        numbers[2].parse().unwrap(),
+    ]
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Particle {
-    position: Vector3,
-    velocity: Vector3,
-    acceleration: Vector3,
+    position: [i64; 3],
+    velocity: [i64; 3],
+    acceleration: [i64; 3],
+    index: usize,
 }
 
 impl Particle {
-    fn from_string(string: &str) -> Particle {
-        let string = string.split_whitespace().collect::<Vec<&str>>();
-        let position = Vector3::from_string(string[0]);
-        let velocity = Vector3::from_string(string[1]);
-        let acceleration = Vector3::from_string(string[2]);
+    fn from_string(string: &str, index: usize) -> Particle {
+        let tokens = string.split_whitespace().collect::<Vec<&str>>();
 
         Particle {
-            position,
-            velocity,
-            acceleration,
+            position: vector_from_string(tokens[0]),
+            velocity: vector_from_string(tokens[1]),
+            acceleration: vector_from_string(tokens[2]),
+            index,
         }
+    }
 
-        // let position = string[0].split(|c| c == '<' || c == '>').collect::<Vec<&str>>()[1];
+    fn distance_from_center(&self) -> i64 {
+        self.position.iter().map(|scalar| scalar.abs()).sum::<i64>()
     }
 }
 
-// fn read_input(filename: &str) -> Vec<Particle> {
-// }
+fn update_particles(particles: &mut Vec<Particle>) {
+    for mut p in particles {
+        p.velocity[0] += p.acceleration[0];
+        p.velocity[1] += p.acceleration[1];
+        p.velocity[2] += p.acceleration[2];
+        p.position[0] += p.velocity[0];
+        p.position[1] += p.velocity[1];
+        p.position[2] += p.velocity[2];
+    }
+}
+
+fn closest_to_center(particles: Vec<Particle>) -> Particle {
+    *particles
+        .iter()
+        .min_by_key(|p| p.distance_from_center())
+        .unwrap()
+}
