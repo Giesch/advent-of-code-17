@@ -11,11 +11,10 @@ fn main() {
         remove_colliding(&mut particles);
     }
 
-    println!("particles left: {}", particles.len());
-
-    let closest = closest_to_center(particles);
-
+    let closest = closest_to_center(&particles);
     println!("{:#?}", closest);
+
+    println!("particles left: {}", particles.len());
 }
 
 fn read_input(file_name: &str) -> Vec<Particle> {
@@ -88,8 +87,8 @@ fn update_particles(particles: &mut Vec<Particle>) {
     }
 }
 
-fn closest_to_center(particles: Vec<Particle>) -> Particle {
-    *particles
+fn closest_to_center(particles: &Vec<Particle>) -> &Particle {
+    particles
         .iter()
         .min_by_key(|p| p.distance_from_center())
         .unwrap()
