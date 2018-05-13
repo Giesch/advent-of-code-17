@@ -1,11 +1,17 @@
+#![feature(drain_filter)]
+
 use std::fs::read_to_string;
+use std::collections::HashMap;
 
 fn main() {
     let mut particles: Vec<Particle> = read_input("problem.txt");
 
-    for _ in 0..1_000_000 {
-        update_particles(&mut particles)
+    for _ in 0..1_000 {
+        update_particles(&mut particles);
+        remove_colliding(&mut particles);
     }
+
+    println!("particles left: {}", particles.len());
 
     let closest = closest_to_center(particles);
 
@@ -55,6 +61,20 @@ impl Particle {
     fn distance_from_center(&self) -> i64 {
         self.position.iter().map(|scalar| scalar.abs()).sum::<i64>()
     }
+}
+
+fn remove_colliding(particles: &mut Vec<Particle>) {
+    let position_counts = particles.iter().map(|particle| particle.position).fold(
+        HashMap::new(),
+        |mut map, position| {
+            *map.entry(position).or_insert(0) += 1;
+            map
+        },
+    );
+
+    particles.drain_filter(|particle| {
+        *position_counts.get(&particle.position).unwrap() > 1
+    });
 }
 
 fn update_particles(particles: &mut Vec<Particle>) {
