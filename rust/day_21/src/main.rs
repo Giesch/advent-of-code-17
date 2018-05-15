@@ -67,6 +67,7 @@ impl Rotatable for Pixels {
             rotated.push(col);
         }
 
+        // thanks SO csharp guy
         for row in 0..size {
             for col in 0..size {
                 rotated[row][col] = self[size - col - 1][row];
@@ -77,20 +78,7 @@ impl Rotatable for Pixels {
     }
 
     fn rotate_left(&self) -> Pixels {
-        let size = self.len();
-        let mut rotated = vec![vec![Pixel::Off; size]; size];
-        for _row in 0..size {
-            let col = Vec::with_capacity(size);
-            rotated.push(col);
-        }
-
-        for row in 0..size {
-            for col in 0..size {
-                rotated[row][col] = self[row][size - col - 1];
-            }
-        }
-
-        rotated
+        self.rotate_right().rotate_right().rotate_right()
     }
 
     fn rotate_180(&self) -> Pixels {
@@ -99,39 +87,24 @@ impl Rotatable for Pixels {
 }
 
 fn build_rule_match_set(pixels: &Pixels) -> HashSet<Pixels> {
-    let mut matches: HashSet<Pixels> = HashSet::new();
+    let matches: HashSet<Pixels> = HashSet::new();
 
-    // let pixelses = [
-    //     pixels.clone(),
+    let add_all_rotations = |mut matches: HashSet<Pixels>, ps: &Pixels| {
+        matches.insert(ps.clone());
+        matches.insert(ps.rotate_right());
+        matches.insert(ps.rotate_left());
+        matches.insert(ps.rotate_180());
+        matches
+    };
 
-    //     pixels.rotate_right(),
-    //     pixels.rotate_right().rotate_right(),
-    //     pixels.rotate_right().rotate_right().rotate_right(),
+    let matches = add_all_rotations(matches, pixels);
 
-    //     // pixels.rotate_right(),
-    //     // pixels.rotate_left(),
-    //     // pixels.rotate_180(),
+    let flipped: Pixels = pixels
+        .iter()
+        .map(|v| v.iter().cloned().rev().collect::<Vec<Pixel>>())
+        .collect();
 
-    // ];
-
-    // for p in pixelses.into_iter() {
-    //     matches.insert(*p);
-    // }
-
-    // this can't be what the borrow checker wanted
-    matches.insert(pixels.clone());
-    matches.insert(pixels.rotate_right());
-    matches.insert(pixels.rotate_left());
-    matches.insert(pixels.rotate_180());
-
-    // let rotated = pixels.rotate();
-    // matches.insert(rotated);
-    // let rotated = rotated.rotate();
-    // matches.insert(rotated);
-    // let rotated = rotated.rotate();
-    // matches.insert(rotated);
-
-    // matches.insert(pixels);
+    let matches = add_all_rotations(matches, &flipped);
 
     matches
 }
