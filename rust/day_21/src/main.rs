@@ -2,8 +2,9 @@ use std::fs;
 use std::collections::HashSet;
 
 fn main() {
-    // let start_pattern = parse_pixels(".#./..#/###");
+    let start_pattern = parse_pixels(".#./..#/###");
     // println!("{:#?}", start_pattern);
+
     let rules = read_input("input.txt");
 
     // let matrix = &rules[50].before;
@@ -86,6 +87,40 @@ impl Rotatable for Pixels {
     }
 }
 
+trait Enhanceable {
+    fn enhance(&self, rules: impl Iterator<Item = Rule>) -> &Self;
+    fn to_two_by_twos(&self) -> Vec<Vec<Pixels>>;
+}
+
+impl Enhanceable for Pixels {
+    fn enhance(&self, rules: impl Iterator<Item = Rule>) -> &Self {
+        if self.len() % 2 == 0 {
+            // even, break into 2x2 and replace each with rules
+        } else {
+            // odd & multiple of 3, break into 3x3 and replace each with rules
+        }
+
+        self
+    }
+
+    fn to_two_by_twos(&self) -> Vec<Vec<Pixels>> {
+        self.chunks(2).map(|row_pair| {
+            let two_rows_of_pairs = row_pair
+                .into_iter()
+                .map(|row: &Vec<Pixel>| row.chunks(2).collect::<Vec<_>>())
+                .collect::<Vec<_>>();
+
+            let row1 = &two_rows_of_pairs[0];
+            let row2 = &two_rows_of_pairs[1];
+
+            // much clone wow
+            let zipper = row1.iter().cloned().zip(row2.iter().cloned());
+            // this rotates the 2x2s, which should be fine
+            zipper.map(|(pair1, pair2)| vec![pair1.into(), pair2.into()]).collect::<Vec<_>>()
+        }).collect()
+    }
+}
+
 fn build_rule_match_set(pixels: &Pixels) -> HashSet<Pixels> {
     let matches: HashSet<Pixels> = HashSet::new();
 
@@ -120,5 +155,9 @@ impl Rule {
             matches,
             after: parse_pixels(tokens[1]),
         }
+    }
+
+    fn matches(&self, pixels: &Pixels) -> bool {
+        self.matches.contains(pixels)
     }
 }
