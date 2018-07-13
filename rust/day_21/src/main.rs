@@ -1,3 +1,5 @@
+#![feature(iterator_flatten)]
+
 use std::collections::HashSet;
 use std::fs;
 
@@ -5,31 +7,18 @@ const START_STRING: &str = ".#./..#/###";
 
 fn main() {
     let start_pattern = parse_pixels(START_STRING);
-    // println!("{:#?}", start_pattern);
-
     let rules = read_input("input.txt");
-
-    // let example = parse_pixels("....../....../....../....../....../....../....../....../......");
-    let example = parse_pixels("#....#/....../....../#....#");
-    let example = example.to_two_by_twos();
-    println!("{:#?}", example);
-
-    // let matrix = &rules[50].before;
-    // println!("{:#?}", matrix);
-    // let rotated = rotate(matrix);
-    // println!("{:#?}", rotated);
+    let solution = solve(start_pattern, &rules, 5);
+    println!("{}", solution);
 }
 
-#[test]
-fn example_test() {
-    let rules = parse_rules("../.# => ##./#../...\n.#./..#/### => #..#/..../..../#..#");
-    let example = parse_pixels(START_STRING);
-    let expected = parse_pixels("#..#/..../..../#..#");
+fn solve(start_pattern: Pixels, rules: &[Rule], iterations: u32) -> usize {
+    let mut current = start_pattern;
+    for _ in 0..iterations {
+        current = current.enhance(rules);
+    }
 
-    // let expected = parse_pixels("##.##./#..#../....../##.##./#..#../......");
-
-    let enhanced = example.enhance(rules);
-    assert_eq!(*enhanced, expected);
+    current.iter().flatten().filter(|&&p| p == Pixel::On).count()
 }
 
 fn read_input(filename: &str) -> Vec<Rule> {
@@ -50,7 +39,6 @@ enum Pixel {
 }
 
 impl Pixel {
-    // TODO: make this return result
     fn from_char(c: char) -> Pixel {
         match c {
             '#' => Pixel::On,
@@ -62,7 +50,7 @@ impl Pixel {
 
 fn parse_pixels(line: &str) -> Pixels {
     line.split('/')
-        .map(|row| row.chars().map(|c| Pixel::from_char(c)).collect())
+        .map(|row| row.chars().map(Pixel::from_char).collect())
         .collect()
 }
 
@@ -84,12 +72,6 @@ impl Rotatable for Pixels {
         let size = self.len();
         let mut rotated = vec![vec![Pixel::Off; size]; size];
 
-        // // TODO: why did we need this?
-        // for _row in 0..size {
-        //     let col = Vec::with_capacity(size);
-        //     rotated.push(col);
-        // }
-
         // thanks SO csharp guy
         for row in 0..size {
             for col in 0..size {
@@ -110,27 +92,26 @@ impl Rotatable for Pixels {
 }
 
 trait Enhanceable {
-    fn enhance(&self, rules: Vec<Rule>) -> Pixels;
+    fn enhance(&self, rules: &[Rule]) -> Pixels;
     fn to_two_by_twos(&self) -> Vec<Vec<Pixels>>;
     fn to_three_by_threes(&self) -> Vec<Vec<Pixels>>;
 }
 
 impl Enhanceable for Pixels {
-    fn enhance(&self, rules: Vec<Rule>) -> Self {
-        if self.len() % 2 == 0 {
-            // even, break into 2x2 and replace each with rules
+    fn enhance(&self, rules: &[Rule]) -> Self {
+        if self.len() == 2 || self.len() == 3 {
+            let pixels = apply_rules(rules, self.clone());
+            pixels.unwrap()
+        } else if self.len() % 2 == 0 {
             let twos = self.to_two_by_twos();
-            // convert each two by two into a pixels
-            let merged: Pixels = merge_two_by_twos(twos);
-            // replace each pixels using apply_rules call
-            let pixels = apply_rules(rules, merged);
-            pixels.unwrap()
+            let twos = map_apply_rules(rules, twos);
+            let merged: Pixels = merge_agnostic(twos);
+            merged
         } else {
-            // assume multiple of 3, break into 3x3 and replace each with rules
             let threes = self.to_three_by_threes();
-            let merged: Pixels = merge_three_by_threes(threes);
-            let pixels = apply_rules(rules, merged);
-            pixels.unwrap()
+            let threes = map_apply_rules(rules, threes);
+            let merged: Pixels = merge_agnostic(threes);
+            merged
         }
     }
 
@@ -146,10 +127,9 @@ impl Enhanceable for Pixels {
                 let row3 = &three_rows_of_triples[2];
 
                 // TODO: does this rotate or break?
-                let zipper = row1
-                    .iter()
-                    .cloned()
-                    .zip(row2.iter().cloned().zip(row3.iter().cloned()));
+                let zipper = row1.iter().cloned().zip(row2.iter().cloned().zip(
+                    row3.iter().cloned(),
+                ));
 
                 zipper
                     .map(|(triple1, (triple2, triple3))| {
@@ -198,9 +178,7 @@ fn build_rule_match_set(pixels: &Pixels) -> HashSet<Pixels> {
         .map(|v| v.iter().cloned().rev().collect::<Vec<Pixel>>())
         .collect();
 
-    let matches = add_all_rotations(matches, &flipped);
-
-    matches
+    add_all_rotations(matches, &flipped)
 }
 
 impl Rule {
@@ -222,16 +200,28 @@ impl Rule {
     }
 }
 
-fn apply_rules(rules: Vec<Rule>, pixels: Pixels) -> Option<Pixels> {
-    rules
-        .iter()
-        .find(|rule| rule.matches(&pixels))
-        .map(|rule| rule.after.clone())
+fn apply_rules(rules: &[Rule], pixels: Pixels) -> Option<Pixels> {
+    rules.iter().find(|rule| rule.matches(&pixels)).map(
+        |rule| {
+            rule.after.clone()
+        },
+    )
+}
+
+fn map_apply_rules(rules: &[Rule], twos_or_threes: Vec<Vec<Pixels>>) -> Vec<Vec<Pixels>> {
+    let mut enhanced: Vec<Vec<Pixels>> = Vec::new();
+    for row in twos_or_threes {
+        let enhanced_row: Vec<Pixels> = row.into_iter()
+            .map(|pixels| apply_rules(rules, pixels).unwrap())
+            .collect();
+        enhanced.push(enhanced_row);
+    }
+    enhanced
 }
 
 fn merge_two_by_twos(two_by_twos: Vec<Vec<Pixels>>) -> Pixels {
     let mut merged: Pixels = Vec::new();
-    for twos_row in two_by_twos.iter() {
+    for twos_row in &two_by_twos {
         let mut first_row: Vec<Pixel> = Vec::new();
         let mut second_row: Vec<Pixel> = Vec::new();
         for two_by_two in twos_row.iter() {
@@ -241,13 +231,12 @@ fn merge_two_by_twos(two_by_twos: Vec<Vec<Pixels>>) -> Pixels {
         merged.push(first_row);
         merged.push(second_row);
     }
-
     merged
 }
 
 fn merge_three_by_threes(three_by_threes: Vec<Vec<Pixels>>) -> Pixels {
     let mut merged: Pixels = Vec::new();
-    for threes_row in three_by_threes.iter() {
+    for threes_row in &three_by_threes {
         let mut first_row: Vec<Pixel> = Vec::new();
         let mut second_row: Vec<Pixel> = Vec::new();
         let mut third_row: Vec<Pixel> = Vec::new();
@@ -262,4 +251,71 @@ fn merge_three_by_threes(three_by_threes: Vec<Vec<Pixels>>) -> Pixels {
     }
 
     merged
+}
+
+fn merge_agnostic(stuff: Vec<Vec<Pixels>>) -> Pixels {
+    if stuff[0][0].len() % 2 == 0 {
+        merge_two_by_twos(stuff)
+    } else {
+        merge_three_by_threes(stuff)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn enhance_2_by_2() {
+        let rules = parse_rules("../.# => ##./#../...\n.#./..#/### => #..#/..../..../#..#");
+        let example = parse_pixels(START_STRING);
+        let expected = parse_pixels("#..#/..../..../#..#");
+        let enhanced = example.enhance(&rules);
+        let mut passed = true;
+        for (r, row) in expected.iter().enumerate() {
+            for (c, p) in row.iter().enumerate() {
+                if *p != enhanced[r][c] {
+                    passed = false;
+                }
+            }
+        }
+        if passed == false {
+            panic!("Expected:\n{:#?}\nEnhanced:\n{:#?}", expected, enhanced);
+        }
+    }
+
+    #[test]
+    fn enhance_4_by_4() {
+        let rules = parse_rules("../.# => ##./#../...\n.#./..#/### => #..#/..../..../#..#");
+        let expected = parse_pixels("##.##./#..#../....../##.##./#..#../......");
+        let example = parse_pixels("#..#/..../..../#..#");
+        let enhanced = example.enhance(&rules);
+        let mut passed = true;
+        for (r, row) in expected.iter().enumerate() {
+            for (c, p) in row.iter().enumerate() {
+                if *p != enhanced[r][c] {
+                    passed = false;
+                }
+            }
+        }
+        if passed == false {
+            panic!("Expected:\n{:#?}\nEnhanced:\n{:#?}", expected, enhanced);
+        }
+    }
+
+    #[test]
+    fn to_three_by_threes_test() {
+        let example = parse_pixels("#...../.#..../..#.../...#../....#./.....#");
+        let split = example.to_three_by_threes();
+        let result = merge_three_by_threes(split);
+        assert_eq!(example, result);
+    }
+
+    #[test]
+    fn solve_test() {
+        let rules = parse_rules("../.# => ##./#../...\n.#./..#/### => #..#/..../..../#..#");
+        let example = parse_pixels(START_STRING);
+        assert_eq!(12, solve(example, &rules, 2));
+    }
+
 }
