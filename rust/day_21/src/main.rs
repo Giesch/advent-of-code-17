@@ -62,13 +62,11 @@ struct Rule {
 }
 
 trait Rotatable {
-    fn rotate_right(&self) -> Self;
-    fn rotate_left(&self) -> Self;
-    fn rotate_180(&self) -> Self;
+    fn rotate(&self) -> Self;
 }
 
 impl Rotatable for Pixels {
-    fn rotate_right(&self) -> Pixels {
+    fn rotate(&self) -> Pixels {
         let size = self.len();
         let mut rotated = vec![vec![Pixel::Off; size]; size];
 
@@ -80,14 +78,6 @@ impl Rotatable for Pixels {
         }
 
         rotated
-    }
-
-    fn rotate_left(&self) -> Pixels {
-        self.rotate_right().rotate_right().rotate_right()
-    }
-
-    fn rotate_180(&self) -> Pixels {
-        self.iter().cloned().rev().collect()
     }
 }
 
@@ -102,16 +92,14 @@ impl Enhanceable for Pixels {
         if self.len() == 2 || self.len() == 3 {
             let pixels = apply_rules(rules, self.clone());
             pixels.unwrap()
-        } else if self.len() % 2 == 0 {
-            let twos = self.to_two_by_twos();
-            let twos = map_apply_rules(rules, twos);
-            let merged: Pixels = merge_agnostic(twos);
-            merged
         } else {
-            let threes = self.to_three_by_threes();
-            let threes = map_apply_rules(rules, threes);
-            let merged: Pixels = merge_agnostic(threes);
-            merged
+            let twos_or_threes = if self.len() % 2 == 0 {
+                self.to_two_by_twos()
+            } else {
+                self.to_three_by_threes()
+            };
+            let enhanced = map_apply_rules(rules, twos_or_threes);
+            merge_agnostic(enhanced)
         }
     }
 
@@ -163,11 +151,11 @@ impl Enhanceable for Pixels {
 }
 
 fn build_rule_match_set(pixels: &Pixels) -> HashSet<Pixels> {
-    let add_all_rotations = |mut matches: HashSet<Pixels>, ps: &Pixels| {
+    fn add_all_rotations(mut matches: HashSet<Pixels>, ps: &Pixels) -> HashSet<Pixels> {
         matches.insert(ps.clone());
-        matches.insert(ps.rotate_right());
-        matches.insert(ps.rotate_left());
-        matches.insert(ps.rotate_180());
+        matches.insert(ps.rotate());
+        matches.insert(ps.rotate().rotate());
+        matches.insert(ps.rotate().rotate().rotate());
         matches
     };
 
