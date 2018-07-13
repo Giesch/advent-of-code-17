@@ -17,8 +17,13 @@ fn solve(start_pattern: Pixels, rules: &[Rule], iterations: u32) -> usize {
     for _ in 0..iterations {
         current = current.enhance(rules);
     }
+    // panic!("{:#?}", current);
 
-    current.iter().flatten().filter(|&&p| p == Pixel::On).count()
+    current
+        .iter()
+        .flatten()
+        .filter(|&&p| p == Pixel::On)
+        .count()
 }
 
 fn read_input(filename: &str) -> Vec<Rule> {
@@ -27,7 +32,7 @@ fn read_input(filename: &str) -> Vec<Rule> {
 }
 
 fn parse_rules(rules: &str) -> Vec<Rule> {
-    rules.lines().map(|line| Rule::from_string(line)).collect()
+    rules.lines().map(Rule::from_string).collect()
 }
 
 type Pixels = Vec<Vec<Pixel>>;
@@ -56,21 +61,30 @@ fn parse_pixels(line: &str) -> Pixels {
 
 #[derive(Debug)]
 struct Rule {
-    before: Pixels,
     after: Pixels,
     matches: HashSet<Pixels>,
 }
 
 trait Rotatable {
     fn rotate(&self) -> Self;
+    fn flip_horizontal(&self) -> Self;
+    fn flip_vertical(&self) -> Self;
 }
 
 impl Rotatable for Pixels {
+    fn flip_horizontal(&self) -> Pixels {
+        self.iter()
+            .map(|row| row.iter().cloned().rev().collect::<Vec<Pixel>>())
+            .collect()
+    }
+
+    fn flip_vertical(&self) -> Pixels {
+        self.iter().cloned().rev().collect()
+    }
+
     fn rotate(&self) -> Pixels {
         let size = self.len();
         let mut rotated = vec![vec![Pixel::Off; size]; size];
-
-        // thanks SO csharp guy
         for row in 0..size {
             for col in 0..size {
                 rotated[row][col] = self[size - col - 1][row];
@@ -151,22 +165,46 @@ impl Enhanceable for Pixels {
 }
 
 fn build_rule_match_set(pixels: &Pixels) -> HashSet<Pixels> {
-    fn add_all_rotations(mut matches: HashSet<Pixels>, ps: &Pixels) -> HashSet<Pixels> {
-        matches.insert(ps.clone());
+    let add_flips = |mut matches: HashSet<Pixels>, ps: &Pixels| {
+        matches.insert(ps.flip_horizontal());
+        matches.insert(ps.flip_vertical());
+        // matches.insert(ps.flip_diagonal());
+        matches
+    };
+
+    let add_all_flips = |mut matches: HashSet<Pixels>| {
+        let mut flips: HashSet<Pixels> = HashSet::new();
+        for pixels in &matches {
+            flips = add_flips(flips, pixels);
+        }
+        matches.extend(flips);
+        matches
+    };
+
+    let add_rotations = |mut matches: HashSet<Pixels>, ps: &Pixels| {
         matches.insert(ps.rotate());
         matches.insert(ps.rotate().rotate());
         matches.insert(ps.rotate().rotate().rotate());
         matches
     };
 
-    let matches = add_all_rotations(HashSet::new(), pixels);
+    let add_all_rotations = |mut matches: HashSet<Pixels>| {
+        let mut rotations: HashSet<Pixels> = HashSet::new();
+        for pixels in &matches {
+            rotations = add_rotations(rotations, pixels);
+        }
+        matches.extend(rotations);
+        matches
+    };
 
-    let flipped: Pixels = pixels
-        .iter()
-        .map(|v| v.iter().cloned().rev().collect::<Vec<Pixel>>())
-        .collect();
+    let mut matches = HashSet::new();
+    matches.insert(pixels.clone());
 
-    add_all_rotations(matches, &flipped)
+    let matches = add_rotations(matches, pixels);
+    let matches = add_all_flips(matches);
+    let matches = add_all_rotations(matches);
+
+    matches
 }
 
 impl Rule {
@@ -176,11 +214,7 @@ impl Rule {
         let matches = build_rule_match_set(&before);
         let after = parse_pixels(tokens[1]);
 
-        Rule {
-            before,
-            matches,
-            after,
-        }
+        Rule { matches, after }
     }
 
     fn matches(&self, pixels: &Pixels) -> bool {
@@ -237,7 +271,6 @@ fn merge_three_by_threes(three_by_threes: Vec<Vec<Pixels>>) -> Pixels {
         merged.push(second_row);
         merged.push(third_row);
     }
-
     merged
 }
 
@@ -293,7 +326,7 @@ mod tests {
 
     #[test]
     fn to_three_by_threes_test() {
-        let example = parse_pixels("#...../.#..../..#.../...#../....#./.....#");
+        let example = parse_pixels("........./........./........./........./........./........./........./........./.........");
         let split = example.to_three_by_threes();
         let result = merge_three_by_threes(split);
         assert_eq!(example, result);
@@ -303,7 +336,16 @@ mod tests {
     fn solve_test() {
         let rules = parse_rules("../.# => ##./#../...\n.#./..#/### => #..#/..../..../#..#");
         let example = parse_pixels(START_STRING);
-        assert_eq!(12, solve(example, &rules, 2));
+        let solution = solve(example, &rules, 2);
+        assert_eq!(12, solution);
+    }
+
+    #[test]
+    fn part1_test() {
+        let start_pattern = parse_pixels(START_STRING);
+        let rules = read_input("input.txt");
+        let solution = solve(start_pattern, &rules, 5);
+        assert_eq!(162, solution);
     }
 
 }
