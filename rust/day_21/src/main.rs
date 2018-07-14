@@ -8,7 +8,7 @@ const START_STRING: &str = ".#./..#/###";
 fn main() {
     let start_pattern = parse_pixels(START_STRING);
     let rules = read_input("input.txt");
-    let solution = solve(start_pattern, &rules, 5);
+    let solution = solve(start_pattern, &rules, 18);
     println!("{}", solution);
 }
 
@@ -274,11 +274,35 @@ fn merge_three_by_threes(three_by_threes: Vec<Vec<Pixels>>) -> Pixels {
     merged
 }
 
+fn merge_four_by_fours(three_by_threes: Vec<Vec<Pixels>>) -> Pixels {
+    let mut merged: Pixels = Vec::new();
+    for fours_row in &three_by_threes {
+        let mut first_row: Vec<Pixel> = Vec::new();
+        let mut second_row: Vec<Pixel> = Vec::new();
+        let mut third_row: Vec<Pixel> = Vec::new();
+        let mut fourth_row: Vec<Pixel> = Vec::new();
+        for four_by_four in fours_row.iter() {
+            first_row.extend(&four_by_four[0]);
+            second_row.extend(&four_by_four[1]);
+            third_row.extend(&four_by_four[2]);
+            fourth_row.extend(&four_by_four[3]);
+        }
+        merged.push(first_row);
+        merged.push(second_row);
+        merged.push(third_row);
+        merged.push(fourth_row);
+    }
+    merged
+}
+
 fn merge_agnostic(stuff: Vec<Vec<Pixels>>) -> Pixels {
-    if stuff[0][0].len() % 2 == 0 {
+    let size = stuff[0][0].len();
+    if size == 2 {
         merge_two_by_twos(stuff)
-    } else {
+    } else if size == 3 {
         merge_three_by_threes(stuff)
+    } else {
+        merge_four_by_fours(stuff)
     }
 }
 

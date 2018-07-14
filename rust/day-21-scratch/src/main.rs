@@ -166,10 +166,22 @@ trait Enhanceable {
 }
 
 impl Enhanceable for Pixels {
-    self.chunks(2)
-        .map(|two_rows| {
-            
-        })
+    fn to_two_by_twos(&self) -> Vec<Vec<TwoByTwo>> {
+        self.chunks(2)
+            .map(|two_rows| {
+                let two_rows_of_pairs = two_rows
+                    .into_iter()
+                    .map(|row: &Vec<bool>| row.chunks(2).collect::<Vec<_>>())
+                    .collect::<Vec<_>>();
+                let row1 = &two_rows_of_pairs[0];
+                let row2 = &two_rows_of_pairs[1];
+                let zipper = row1.iter().cloned().zip(row2.iter().cloned());
+                zipper
+                    .map(|(pair1, pair2)| vec![pair1.into(), pair2.into()])
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]
